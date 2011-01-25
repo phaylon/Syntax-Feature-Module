@@ -218,12 +218,12 @@ sub _transform {
     $seen = 'version'
         if defined $module_version;
     my $module_preamble = sprintf '%s; ();', join(';',
-        @{ $options->{ -preamble } },
         $class->get_default_preamble({
             name    => $module_name,
             version => $module_version,
             options => $options,
         }),
+        @{ $options->{ -preamble } },
     );
     croak sprintf q{Expected a block after %s %s, not: %s},
             $ctx->declarator,
