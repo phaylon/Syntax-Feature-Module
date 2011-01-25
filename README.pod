@@ -1,0 +1,218 @@
+=pod
+
+=head1 NAME
+
+Syntax::Feature::Module - Provides a module keyword
+
+=head1 VERSION
+
+version 0.001
+
+=head1 SYNOPSIS
+
+    use syntax qw( module );
+
+    module Foo::Bar 1.23 {
+        sub baz { 45 }
+    };
+
+=head1 DESCRIPTION
+
+This syntax extension provides a declarative way to enclose a block of
+code in a package namespace.
+
+Note that the keyword is implemented as expression. This means it will not
+automatically terminate the statement after the block. It behaves this way
+for one out of consistency (since it returns the name of the package) and
+to make it available for extended expressions by embedding the declaration
+inside a function call and using the returned package name.
+
+Since the keyword returns the name of the package at runtime, you don't
+need to follow your declaration up with C<1;>, unless your package name is
+false.
+
+=head1 METHODS
+
+=head2 import
+
+    $class->import( %options );
+
+Can be used to directly setup a module keyword via
+
+    use Syntax::Feature::Module -as => 'my_name';
+
+See L</OPTIONS> for a list of available options.
+
+=head2 install
+
+    $class->install( \%arguments )
+
+Used by the L<syntax> framework to install this extension. The
+C<\%arguments> must contain the target package as C<into> and the options
+that were given to the extension as C<options>.
+
+=head2 get_default_name
+
+    $class->get_default_name()
+
+Returns the default keyword name. Override this in specialized subclasses.
+
+=head2 get_default_preamble
+
+    $class->get_default_preamble( \%arguments )
+
+Combines L</get_package_preamble>, L</get_version_preamble> and
+L</get_propagation_preamble> into a single call. It will return Perl
+statements to be placed at the beginning of the module block. You can
+extend this method if you want to automatically load additional
+modules.
+
+The C<\%arguments> will be passed on to the specific preamble generators.
+It will contain values for the C<name> of the module, its C<version> and
+the (normalized) C<options> that were passed to the extension.
+
+=head2 get_propagation_preamble
+
+    $class->get_propagation_preamble( \%arguments )
+
+This will provide the statements necessary to install syntax extensions
+specified via L</-inner>, and to make sure the current extension is
+available inside as well.
+
+=head2 get_package_preamble
+
+    $class->get_package_preamble( \%arguments )
+
+Returns a Perl package declaration statement. The C<name> of the package
+is taken from the C<\%arguments>.
+
+=head2 get_version_preamble
+
+    $class->get_version_preamble( \%arguments )
+
+Returns a Perl package version declaration statement in the form
+
+    our $VERSION = <your-version>;
+
+The C<version> value for the variable is taken from the C<\%arguments>.
+
+=head2 get_runtime_callback
+
+    $class->get_runtime_callback( $target )
+
+This method returns a function that will be invoked for every instance
+of the keyword. The callback will receive the name of the package, and
+the result of the last evaluated expression in the block.
+
+The default callback simply returns the name of the declared package.
+
+=head1 SYNTAX
+
+A full module declaration looks like the following:
+
+    use syntax qw( module );
+    module Foo::Bar 2.34 { ... };
+
+This will evaluate the block contents marked with C<...> inside a package
+namespace named C<Foo::Bar>. It will also set the C<$VERSION> of C<Foo::Bar>
+to C<2.34>.
+
+The version specification is optional, so if you want you can declare the
+module like this:
+
+    use syntax qw( module );
+    module Foo::Bar { ... };
+
+and the C<$VERSION> won't be touched.
+
+You can go even further and omit the namespace as well. In this case, the
+namespace will be inherited from the outside:
+
+    package Foo::Bar;
+    use syntax qw( module );
+    module { ... };
+
+Of course you can also include a version without giving a namespace:
+
+    package Foo::Bar;
+    use syntax qw( module );
+    module 2.34 { ... };
+
+This might seem rather pointless with this specific module. But keep in
+mind that extensions of the module syntax might automatically provide
+other libraries and extensions. This shortcut simply makes you not type
+the package name twice if you want both: A short invocation of package
+syntax extensions, and not upsetting anything in the CPAN toolchain.
+
+=head1 OPTIONS
+
+=head2 -inner
+
+    use syntax module => { -inner => [qw( function )] };
+    module Foo::Bar 2.34 {
+        fun baz { 56 }
+    };
+
+This option configures the syntax extensions that should be available
+inside the block. The above example uses L<Syntax::Feature::Function> as
+demonstration.
+
+As a shortcut, you can supply an array reference instead of a hash
+reference as argument to set the value of C<-inner>. With this in mind,
+the above can be written more easily as
+
+    use syntax module => [qw( function )];
+    module Foo::Bar 2.34 {
+        fun baz { 56 }
+    };
+
+Extensions of this module might choose to provide a default set of inner
+syntax features.
+
+=head2 -as
+
+    use syntax module => { -as => 'namespace' };
+    namespace Foo::Bar 2.34 {
+        sub baz { 56 }
+    };
+
+Allows you to override the default keyword name.
+
+=head2 -preamble
+
+    use syntax module => { -preamble => ['use Moose'] };
+    module Foo::Bar 2.34 {
+        has baz => (is => 'rw');
+    };
+
+This option can be used to extend the statements that are included at
+the top of the block.
+
+=head1 SEE ALSO
+
+=over
+
+=item * L<syntax>
+
+=item * L<Syntax::Feature::Function>
+
+=item * L<Devel::Declare>
+
+=back
+
+=head1 BUGS
+
+Please report any bugs or feature requests to bug-syntax-feature-module@rt.cpan.org or through the web interface at:
+ http://rt.cpan.org/Public/Dist/Display.html?Name=Syntax-Feature-Module
+
+=head1 AUTHOR
+
+Robert 'phaylon' Sedlacek <rs@474.at>
+
+=head1 COPYRIGHT AND LICENSE
+
+This software is copyright (c) 2011 by Robert 'phaylon' Sedlacek.
+
+This is free software; you can redistribute it and/or modify it under
+the same terms as the Perl 5 programming language system itself.
+
