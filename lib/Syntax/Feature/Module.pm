@@ -41,6 +41,47 @@ sub import {
 }
 
 
+=method install_multiple
+
+    $class->install_multiple( %arguments )
+
+This can be used to install multiple blocks in one go with a combined
+configuration.
+
+=cut
+
+sub install_multiple {
+    my ($class, %args) = @_;
+    my $target      = $args{into};
+    my $outer       = $args{outer};
+    my $options     = $class->_prepare_multi_options($args{options});
+    my $names       = $options->{ -as };
+    my $inner       = $options->{ -inner };
+    my $preamble    = $options->{ -preamble };
+    my $blocks      = $args{ blocks };
+    croak qq{The -blocks option for multiple $class has to be a hash ref}
+        unless is_ref $blocks, 'HASH';
+    $class->_check_identifier($_)
+        for keys %$blocks;
+    for my $block (keys %$blocks) {
+        my $block_options  = $class->_prepare_options($blocks->{ $block });
+        my $block_name     = $names->{ $block } || $block;
+        my $block_inner    = $block_options->{ -inner };
+        my $block_preamble = $block_options->{ -preamble };
+        $class->install(
+            into    => $target,
+            outer   => $outer,
+            options => {
+                -as         => $block_name,
+                -inner      => [ @$block_inner,    @$inner ],
+                -preamble   => [ @$block_preamble, @$preamble ],
+            },
+        );
+    }
+    return 1;
+}
+
+
 =method install
 
     $class->install( \%arguments )
@@ -90,9 +131,9 @@ Returns the default keyword name. Override this in specialized subclasses.
 sub get_default_name { 'module' }
 
 
-=method get_default_preamble
+=method get_preamble
 
-    $class->get_default_preamble( \%arguments )
+    $class->get_preamble( \%arguments, @custom )
 
 Combines L</get_package_preamble>, L</get_version_preamble> and
 L</get_propagation_preamble> into a single call. It will return Perl
@@ -106,11 +147,12 @@ the (normalized) C<options> that were passed to the extension.
 
 =cut
 
-sub get_default_preamble {
-    my ($class, $args) = @_;
+sub get_preamble {
+    my ($class, $args, @custom) = @_;
     return(
         $class->get_package_preamble($args),
         $class->get_version_preamble($args),
+        @custom,
         $class->get_propagation_preamble($args),
     );
 }
@@ -129,14 +171,14 @@ available inside as well.
 sub get_propagation_preamble {
     my ($class, $args) = @_;
     my $options = $args->{options};
-    my $inner   = $options->{-inner} || [];
+    my $inner   = $options->{ -inner } || [];
     return(
         sprintf('use %s %s',
             $class,
-            join ', ', map pp($_), %$options,
+            $class->_dump(%$options),
         ),
         @$inner ? sprintf('use syntax %s',
-            join ', ', map pp($_), @$inner
+            $class->_dump(@$inner),
         ) : (),
     );
 }
@@ -212,18 +254,19 @@ sub _transform {
         if defined $module_name;
     $module_name = Devel::Declare::get_curstash_name()
         unless defined $module_name;
-    $class->_advance($ctx, $class->_inject($ctx, pp($module_name)));
-    $class->_advance($ctx, $class->_inject($ctx, ', do '));
+    $class->_advance($ctx,
+        $class->_inject($ctx, $class->_dump($module_name)));
+    $class->_advance($ctx,
+        $class->_inject($ctx, ', do '));
     my $module_version = $class->_strip_module_version($ctx);
     $seen = 'version'
         if defined $module_version;
     my $module_preamble = sprintf '%s; ();', join(';',
-        $class->get_default_preamble({
+        $class->get_preamble({
             name    => $module_name,
             version => $module_version,
             options => $options,
-        }),
-        @{ $options->{ -preamble } },
+        }, @{ $options->{ -preamble } }),
     );
     croak sprintf q{Expected a block after %s %s, not: %s},
             $ctx->declarator,
@@ -231,8 +274,19 @@ sub _transform {
             $class->_get_reststr($ctx)
         unless $class->_check_next($ctx, qr/ \{ /x);
     my $scope_callback = $class->_render_scope_callback;
-    $class->_advance($ctx, $class->_inject($ctx, $scope_callback, 1));
-    $class->_advance($ctx, $class->_inject($ctx, $module_preamble));
+    $class->_advance($ctx, $class->_inject($ctx, $module_preamble, 1));
+    $class->_advance($ctx, $class->_inject($ctx, $scope_callback));
+    return 1;
+}
+
+sub _dump {
+    my ($class, @values) = @_;
+    my $code = join ',', map {
+        is_ref($_, 'HASH')  ? sprintf('+{%s}', $class->_dump(%$_))
+      : is_ref($_, 'ARRAY') ? sprintf('[%s]', $class->_dump(@$_))
+      : pp($_);
+    } @values;
+    return $code;
 }
 
 sub _normalise_options {
@@ -274,21 +328,50 @@ sub _normalise_as_option {
         unless defined $options->{ -as };
     croak q{The -as option only accepts strings}
         unless is_string $options->{ -as };
+    return $class->_check_identifier($options->{ -as });
+}
+
+sub _check_identifier {
+    my ($class, $identifier) = @_;
     croak sprintf q{The string '%s' cannot be used as keyword for %s syntax},
-            $options->{ -as },
+            $identifier,
             $class,
-        unless $options->{ -as } =~ m{ \A [a-z_] [a-z0-9_]* \Z }xi;
+        unless $identifier =~ m{ \A [a-z_] [a-z0-9_]* \Z }xi;
     return 1;
 }
 
-sub _prepare_options {
+sub _normalise_multi_as_option {
+    my ($class, $options) = @_;
+    $options->{ -as } = {}
+        unless defined $options->{ -as };
+    croak q{The -as option must be a hash ref of identifiers}
+        unless is_ref $options->{ -as }, 'HASH';
+    $class->_check_identifier($_)
+        for values %{ $options->{ -as } };
+    return 1;
+}
+
+sub _prepare_common_options {
     my ($class, $options) = @_;
     $options = $class->_normalise_options($options);
     $class->can("_normalise_${_}_option")->($class, $options) for qw(
         inner
-        as
         preamble
     );
+    return $options;
+}
+
+sub _prepare_multi_options {
+    my ($class, $options) = @_;
+    $options = $class->_prepare_common_options($options);
+    $class->_normalise_multi_as_option($options);
+    return $options;
+}
+
+sub _prepare_options {
+    my ($class, $options) = @_;
+    $options = $class->_prepare_common_options($options);
+    $class->_normalise_as_option($options);
     return $options;
 }
 

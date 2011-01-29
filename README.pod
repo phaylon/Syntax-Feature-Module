@@ -43,6 +43,13 @@ Can be used to directly setup a module keyword via
 
 See L</OPTIONS> for a list of available options.
 
+=head2 install_multiple
+
+    $class->install_multiple( %arguments )
+
+This can be used to install multiple blocks in one go with a combined
+configuration.
+
 =head2 install
 
     $class->install( \%arguments )
@@ -57,9 +64,9 @@ that were given to the extension as C<options>.
 
 Returns the default keyword name. Override this in specialized subclasses.
 
-=head2 get_default_preamble
+=head2 get_preamble
 
-    $class->get_default_preamble( \%arguments )
+    $class->get_preamble( \%arguments, @custom )
 
 Combines L</get_package_preamble>, L</get_version_preamble> and
 L</get_propagation_preamble> into a single call. It will return Perl

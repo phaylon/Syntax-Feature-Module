@@ -55,6 +55,44 @@ subtest 'inline packages' => sub {
     ::done_testing;
 };
 
+subtest 'multiple' => sub {
+    package TestD;
+    BEGIN {
+        Syntax::Feature::Module->install_multiple(
+            into    => 'TestD',
+            blocks => {
+                class => {
+                    -inner      => [module => { -as => 'in_class' }],
+                    -preamble   => ['my $FOO = 23'],
+                },
+                role => {
+                    -inner      => [module => { -as => 'in_role' }],
+                    -preamble   => ['my $BAR = 17'],
+                },
+            },
+            options => {
+                -inner => [module => { -as => 'in_both' }],
+            },
+        );
+    }
+    my $class_ret = class Foo::Class {
+        my $inner_ret = in_class Foo::Class::Inner {
+            ::is __PACKAGE__, 'Foo::Class::Inner', 'class inner package';
+        };
+        ::is $inner_ret, 'Foo::Class::Inner', 'class inner return';
+        ::is $FOO, 23, 'class preamble';
+    };
+    my $role_ret = role Foo::Role {
+        my $inner_ret = in_role Foo::Role::Inner {
+            ::is __PACKAGE__, 'Foo::Role::Inner', 'role inner package';
+        };
+        ::is $inner_ret, 'Foo::Role::Inner', 'role inner return';
+        ::is $BAR, 17, 'role preamble';
+    };
+    ::is $class_ret, 'Foo::Class', 'class return';
+    ::is $role_ret,  'Foo::Role',  'role return';
+};
+
 subtest 'errors' => sub {
     like(
         exception { require MY::Invalid::Semicolon },
