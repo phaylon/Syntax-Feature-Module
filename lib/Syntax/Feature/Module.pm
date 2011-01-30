@@ -466,6 +466,49 @@ sub _strip_module_name {
 
 __END__
 
+=option -inner
+
+    use syntax module => { -inner => [qw( function )] };
+    module Foo::Bar 2.34 {
+        fun baz { 56 }
+    };
+
+This option configures the syntax extensions that should be available
+inside the block. The above example uses L<Syntax::Feature::Function> as
+demonstration.
+
+As a shortcut, you can supply an array reference instead of a hash
+reference as argument to set the value of C<-inner>. With this in mind,
+the above can be written more easily as
+
+    use syntax module => [qw( function )];
+    module Foo::Bar 2.34 {
+        fun baz { 56 }
+    };
+
+Extensions of this module might choose to provide a default set of inner
+syntax features.
+
+=option -as
+
+    use syntax module => { -as => 'namespace' };
+    namespace Foo::Bar 2.34 {
+        sub baz { 56 }
+    };
+
+Allows you to override the default keyword name.
+
+=option -preamble
+
+    use syntax module => { -preamble => ['use Moose'] };
+    module Foo::Bar 2.34 {
+        has baz => (is => 'rw');
+    };
+
+This option can be used to extend the statements that are included at
+the top of the block.
+
+
 =head1 SYNOPSIS
 
     use syntax qw( module );
@@ -526,50 +569,6 @@ mind that extensions of the module syntax might automatically provide
 other libraries and extensions. This shortcut simply makes you not type
 the package name twice if you want both: A short invocation of package
 syntax extensions, and not upsetting anything in the CPAN toolchain.
-
-=head1 OPTIONS
-
-=head2 -inner
-
-    use syntax module => { -inner => [qw( function )] };
-    module Foo::Bar 2.34 {
-        fun baz { 56 }
-    };
-
-This option configures the syntax extensions that should be available
-inside the block. The above example uses L<Syntax::Feature::Function> as
-demonstration.
-
-As a shortcut, you can supply an array reference instead of a hash
-reference as argument to set the value of C<-inner>. With this in mind,
-the above can be written more easily as
-
-    use syntax module => [qw( function )];
-    module Foo::Bar 2.34 {
-        fun baz { 56 }
-    };
-
-Extensions of this module might choose to provide a default set of inner
-syntax features.
-
-=head2 -as
-
-    use syntax module => { -as => 'namespace' };
-    namespace Foo::Bar 2.34 {
-        sub baz { 56 }
-    };
-
-Allows you to override the default keyword name.
-
-=head2 -preamble
-
-    use syntax module => { -preamble => ['use Moose'] };
-    module Foo::Bar 2.34 {
-        has baz => (is => 'rw');
-    };
-
-This option can be used to extend the statements that are included at
-the top of the block.
 
 =head1 SEE ALSO
 

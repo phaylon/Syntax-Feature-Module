@@ -31,88 +31,6 @@ Since the keyword returns the name of the package at runtime, you don't
 need to follow your declaration up with C<1;>, unless your package name is
 false.
 
-=head1 METHODS
-
-=head2 import
-
-    $class->import( %options );
-
-Can be used to directly setup a module keyword via
-
-    use Syntax::Feature::Module -as => 'my_name';
-
-See L</OPTIONS> for a list of available options.
-
-=head2 install_multiple
-
-    $class->install_multiple( %arguments )
-
-This can be used to install multiple blocks in one go with a combined
-configuration.
-
-=head2 install
-
-    $class->install( \%arguments )
-
-Used by the L<syntax> framework to install this extension. The
-C<\%arguments> must contain the target package as C<into> and the options
-that were given to the extension as C<options>.
-
-=head2 get_default_name
-
-    $class->get_default_name()
-
-Returns the default keyword name. Override this in specialized subclasses.
-
-=head2 get_preamble
-
-    $class->get_preamble( \%arguments, @custom )
-
-Combines L</get_package_preamble>, L</get_version_preamble> and
-L</get_propagation_preamble> into a single call. It will return Perl
-statements to be placed at the beginning of the module block. You can
-extend this method if you want to automatically load additional
-modules.
-
-The C<\%arguments> will be passed on to the specific preamble generators.
-It will contain values for the C<name> of the module, its C<version> and
-the (normalized) C<options> that were passed to the extension.
-
-=head2 get_propagation_preamble
-
-    $class->get_propagation_preamble( \%arguments )
-
-This will provide the statements necessary to install syntax extensions
-specified via L</-inner>, and to make sure the current extension is
-available inside as well.
-
-=head2 get_package_preamble
-
-    $class->get_package_preamble( \%arguments )
-
-Returns a Perl package declaration statement. The C<name> of the package
-is taken from the C<\%arguments>.
-
-=head2 get_version_preamble
-
-    $class->get_version_preamble( \%arguments )
-
-Returns a Perl package version declaration statement in the form
-
-    our $VERSION = <your-version>;
-
-The C<version> value for the variable is taken from the C<\%arguments>.
-
-=head2 get_runtime_callback
-
-    $class->get_runtime_callback( $target )
-
-This method returns a function that will be invoked for every instance
-of the keyword. The callback will receive the name of the package, and
-the result of the last evaluated expression in the block.
-
-The default callback simply returns the name of the declared package.
-
 =head1 SYNTAX
 
 A full module declaration looks like the following:
@@ -194,6 +112,88 @@ Allows you to override the default keyword name.
 
 This option can be used to extend the statements that are included at
 the top of the block.
+
+=head1 METHODS
+
+=head2 import
+
+    $class->import( %options );
+
+Can be used to directly setup a module keyword via
+
+    use Syntax::Feature::Module -as => 'my_name';
+
+See L</OPTIONS> for a list of available options.
+
+=head2 install_multiple
+
+    $class->install_multiple( %arguments )
+
+This can be used to install multiple blocks in one go with a combined
+configuration.
+
+=head2 install
+
+    $class->install( \%arguments )
+
+Used by the L<syntax> framework to install this extension. The
+C<\%arguments> must contain the target package as C<into> and the options
+that were given to the extension as C<options>.
+
+=head2 get_default_name
+
+    $class->get_default_name()
+
+Returns the default keyword name. Override this in specialized subclasses.
+
+=head2 get_preamble
+
+    $class->get_preamble( \%arguments, @custom )
+
+Combines L</get_package_preamble>, L</get_version_preamble> and
+L</get_propagation_preamble> into a single call. It will return Perl
+statements to be placed at the beginning of the module block. You can
+extend this method if you want to automatically load additional
+modules.
+
+The C<\%arguments> will be passed on to the specific preamble generators.
+It will contain values for the C<name> of the module, its C<version> and
+the (normalized) C<options> that were passed to the extension.
+
+=head2 get_propagation_preamble
+
+    $class->get_propagation_preamble( \%arguments )
+
+This will provide the statements necessary to install syntax extensions
+specified via L</-inner>, and to make sure the current extension is
+available inside as well.
+
+=head2 get_package_preamble
+
+    $class->get_package_preamble( \%arguments )
+
+Returns a Perl package declaration statement. The C<name> of the package
+is taken from the C<\%arguments>.
+
+=head2 get_version_preamble
+
+    $class->get_version_preamble( \%arguments )
+
+Returns a Perl package version declaration statement in the form
+
+    our $VERSION = <your-version>;
+
+The C<version> value for the variable is taken from the C<\%arguments>.
+
+=head2 get_runtime_callback
+
+    $class->get_runtime_callback( $target )
+
+This method returns a function that will be invoked for every instance
+of the keyword. The callback will receive the name of the package, and
+the result of the last evaluated expression in the block.
+
+The default callback simply returns the name of the declared package.
 
 =head1 SEE ALSO
 
